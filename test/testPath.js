@@ -97,6 +97,26 @@ var pathTests = function () {
             assert.equal(returnVal, doc);
             done();
         });
+
+        describe('prototype pollution', function () {
+            it('should protect against prototype pollution via __proto__', function () {
+                doc = {};
+                var originalProto = doc.__proto__;
+                assert.equal(originalProto.polluted, undefined);
+                originalProto.foo = true;
+                Object.freeze(originalProto);
+                
+                path.setPath(doc, '__proto__.polluted', 'prototype-polluted');
+
+                assert.equal(originalProto.polluted, undefined, 'original [[Prototype]] is not polluted');
+                assert.equal({}.polluted, undefined, 'new objects are not polluted');
+                // use of Object.getOwnPropertyDescriptor is necessary because node 0.10 has a bug
+                // where `obj['__proto__']` incorrectly does `obj.__proto__`, which is different.
+                if (Object.getOwnPropertyDescriptor) {
+                    assert.equal(Object.getOwnPropertyDescriptor(doc, '__proto__').value.polluted, 'prototype-polluted', 'new own __proto__ object is polluted');
+                }
+            });
+        });
     });
 };
 
